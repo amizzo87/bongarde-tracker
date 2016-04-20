@@ -1,0 +1,35 @@
+<script type="text/javascript">
+var totango_options = {
+    service_id: "{{ service_id }}",
+    user: {
+        id: "{{ user_id }}",                 // email address or other unique identifier of the user
+        firstName: "{{ user_firstname }}",
+        lastName: "{{ user_lastname }}",
+{% for key, value in userProps %}
+{{ key }}: "{{ value }}",
+{% endfor %}
+},
+account: {
+    id: "{{ acc_id }}",                            // unique identifier of the account the user is part of
+    name: "{{ acc_name }}",             // name of the account
+    status: "{{ acc_status }}",                         // OPTIONAL: status of the account "Free", "Paying", ..
+    "Create Date": "{{ acc_createdAt }}",
+    {% for key, value in accProps %}
+    {{ key }}: "{{ value }}",
+    {% endfor %}
+},
+// Add product: if you would like to register usage events on
+// the specific product
+    product: {
+        id: "{{ product }}",
+        account_id: "{{ acc_id }} : {{ product }}",// Optional, if not set we will use $account_id__$product_id
+        module: "{{ module }}",
+        // Revision: "5.3", // attribute on the product-account
+        "Account Type": "product"
+    }
+};
+
+
+(function() { var tracker_name=window.totango_options.tracker_name||"totango";window.totango_tmp_stack=[];window[tracker_name]={go:function(){return -1;},setAccountAttributes:function(){},identify:function(){},track:function(t,o,n,a){window.totango_tmp_stack.push({activity:t,module:o,org:n,user:a}); return -1;}}; var e = document.createElement('script'); e.type = 'text/javascript'; e.async = true; e.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'tracker.totango.com/totango3.js'; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(e, s); })();
+
+</script>

@@ -1,0 +1,19 @@
+{
+  "name": "getherbert/herbert-plugin",
+  "description": "Herbert plugin",
+  "license": "MIT",
+  "require": {
+    "getherbert/framework": "~0.9",
+    "afragen/github-updater": "^5.4",
+    "bugsnag/bugsnag": "^2.7"
+  },
+  "config": {
+    "preferred-install": "dist"
+  },
+  "minimum-stability": "dev",
+  "autoload": {
+    "psr-4": {
+      "BongardeTracker\\": "app/"
+    }
+  }
+}
