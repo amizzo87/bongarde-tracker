@@ -11,16 +11,17 @@
  * License:           To kill.
  * GitHub Plugin URI: amizzo87/bongarde-tracker
  */
+use Bugsnag_Client as Bugsnag_Client;
 require_once ABSPATH . '/sforce/soapclient/SforcePartnerClient.php';
 require_once ABSPATH . '/sforce/soapclient/SforceEnterpriseClient.php';
-
+require_once __DIR__ . '/vendor/bugsnag/bugsnag/src/Bugsnag/Autoload.php';
 ini_set("soap.wsdl_cache_enabled", "0");
 
 define("USERNAME", get_option( 'bongarde_tracker_options' )['sf_login']);
 define("PASSWORD", get_option( 'bongarde_tracker_options' )['sf_pass']);
 define("SECURITY_TOKEN", get_option( 'bongarde_tracker_options' )['sf_token']);
 
-$bugsnag = new Bugsnag_Client('d2c4aef01c781042c1a07a2ae47acc00');
+$bugsnag = new Bugsnag_Client(get_option( 'bongarde_tracker_options')['bugsnag_api']);
 set_error_handler(array($bugsnag, 'errorHandler'));
 set_exception_handler(array($bugsnag, 'exceptionHandler'));
 

@@ -109,6 +109,14 @@ class SettingsController
             'my-setting-admin',
             'setting_section_id'
         );
+
+        add_settings_field(
+            'bugsnag_api',
+            'Bugsnag API Key',
+            array( $this, 'bugsnag_api_callback' ),
+            'my-setting-admin',
+            'setting_section_id'
+        );
     }
 
     /**
@@ -190,6 +198,14 @@ class SettingsController
         printf(
             '<input type="text" id="sf_token" name="bongarde_tracker_options[sf_token]" value="%s" />',
             isset( $this->options['sf_token'] ) ? esc_attr( $this->options['sf_token']) : ''
+        );
+    }
+
+    public function bugsnag_api_callback()
+    {
+        printf(
+            '<input type="text" id="bugsnag_api" name="bongarde_tracker_options[bugsnag_api]" value="%s" />',
+            isset( $this->options['bugsnag_api'] ) ? esc_attr( $this->options['bugsnag_api']) : ''
         );
     }
 }
