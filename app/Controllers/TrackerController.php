@@ -75,7 +75,7 @@ class TrackerController {
     public function TotangoCore()
     {
         $categories = wp_list_pluck( get_the_category( get_the_ID() ), 'name');
-        if (!$this->meta_sfAccId) return null;
+        if (!$this->meta_sfAccId || is_admin()) return null;
 
         return view('@BongardeTracker/totango.twig', ['service_id'   => get_option( 'bongarde_tracker_options' )['totango_sid'],
             'user_id' => $this->thisCustomer->email,
