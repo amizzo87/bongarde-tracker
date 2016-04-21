@@ -7,6 +7,7 @@ use ChargeBee_Customer as ChargeBee_Customer;
 use ChargeBee_Subscription as ChargeBee_Subscription;
 use SforceEnterpriseClient as SforceEnterpriseClient;
 use stdClass as stdClass;
+use ChargeBee_InvalidRequestException as ChargeBee_InvalidRequestException;
 
 class TrackerController {
 
@@ -31,15 +32,15 @@ class TrackerController {
                 $customerResult = ChargeBee_Customer::retrieve($this->current_user->ID);
                 $subResult = ChargeBee_Subscription::retrieve($this->current_user->ID);
 
-
                 $this->thisCustomer = $customerResult->customer();
                 $this->thisSub = $subResult->subscription();
 
                 $planResult = ChargeBee_Plan::retrieve($this->thisSub->planId);
                 $this->thisPlan = $planResult->plan();
 
-            } catch (Exception $e) {
-                throw $e;
+            } catch (ChargeBee_InvalidRequestException $e) {
+                // echo $e;
+                return;
             }
 
 
@@ -51,7 +52,11 @@ class TrackerController {
                     $this->meta_sfOppOwner = get_user_meta($this->current_user->ID, 'sfOppOwner', true);
                     $this->meta_sfRefreshDate = get_user_meta($this->current_user->ID, 'sfRefreshDate', true);
 
-                if(!$this->meta_sfAccName || !$this->meta_sfAccId || $this->meta_sfRefreshDate) {
+                $nowDate = date("U");
+                $origDate = date("U", $this->meta_sfRefreshDate);
+                $timeDelta = floor(($nowDate - $origDate) / 86400);
+
+                if(!$this->meta_sfAccName || !$this->meta_sfAccId || !$this->meta_sfRefreshDate || $timeDelta > 30) {
 
                     $sfController = new SalesforceController($this->current_user);
                     $sfController->fetchRecords($this->thisCustomer);
@@ -69,6 +74,8 @@ class TrackerController {
      */
     public function TotangoCore()
     {
+        $categories = wp_list_pluck( get_the_category( get_the_ID() ), 'name');
+        if (!$this->meta_sfAccId) return null;
 
         return view('@BongardeTracker/totango.twig', ['service_id'   => get_option( 'bongarde_tracker_options' )['totango_sid'],
             'user_id' => $this->thisCustomer->email,
@@ -78,11 +85,19 @@ class TrackerController {
             'acc_name' => $this->meta_sfAccName,
             'acc_status' => $this->thisSub->status,
             'acc_ofid' => $this->meta_sfAccId,
-            'module' => null,
-            'planId' => $this->thisPlan,
+            'oppAmount' => ($this->thisPlan->price > 0 ? $this->thisPlan->price / 100 : $this->meta_sfOppAmount),
+            'module' => $categories[0],
+            'planId' => $this->thisSub->planId,
+            'trialDate' => ($this->thisSub->trialEnd == 0 ? null : date('c', $this->thisSub->trialEnd)),
+            'renewalDate' => ($this->thisSub->currentTermEnd == 0 ? null : date('c', $this->thisSub->currentTermEnd)),
             'product' => get_option( 'bongarde_tracker_options' )['product_name'],
             'acc_createdAt' => date('c', $this->thisSub->startedAt)
 
         ]);
+    }
+
+    public function TotangoTrack()
+    {
+
     }
 }

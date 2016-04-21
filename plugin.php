@@ -11,19 +11,23 @@
  * License:           To kill.
  * GitHub Plugin URI: amizzo87/bongarde-tracker
  */
-use Bugsnag_Client as Bugsnag_Client;
-require_once ABSPATH . '/sforce/soapclient/SforcePartnerClient.php';
-require_once ABSPATH . '/sforce/soapclient/SforceEnterpriseClient.php';
-require_once __DIR__ . '/vendor/bugsnag/bugsnag/src/Bugsnag/Autoload.php';
-ini_set("soap.wsdl_cache_enabled", "0");
 
+require_once __DIR__ . '/resources/assets/sforce/soapclient/SforcePartnerClient.php';
+require_once __DIR__ . '/resources/assets/sforce/soapclient/SforceEnterpriseClient.php';
+require_once __DIR__ . '/resources/assets/sforce/soapclient/SforceHeaderOptions.php';
+// require_once __DIR__ . '/vendor/bugsnag/bugsnag/src/Bugsnag/Autoload.php';
+// use Bugsnag_Client as Bugsnag_Client;
+
+ini_set("soap.wsdl_cache_enabled", "0");
 define("USERNAME", get_option( 'bongarde_tracker_options' )['sf_login']);
 define("PASSWORD", get_option( 'bongarde_tracker_options' )['sf_pass']);
 define("SECURITY_TOKEN", get_option( 'bongarde_tracker_options' )['sf_token']);
 
+/*
 $bugsnag = new Bugsnag_Client(get_option( 'bongarde_tracker_options')['bugsnag_api']);
 set_error_handler(array($bugsnag, 'errorHandler'));
 set_exception_handler(array($bugsnag, 'exceptionHandler'));
+*/
 
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/vendor/getherbert/framework/bootstrap/autoload.php';

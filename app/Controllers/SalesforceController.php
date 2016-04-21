@@ -1,18 +1,29 @@
 <?php namespace BongardeTracker\Controllers;
 
 use SforceEnterpriseClient as SforceEnterpriseClient;
+use SforcePartnerClient as SforcePartnerClient;
+use SforceSoapClient as SforceSoapClient;
 use stdClass as stdClass;
+use SObject as SObject;
+
+use BongardeTracker\Helper as Helper;
 
 class SalesforceController
 {
     private $mySforceConnection;
+    private $mySforcePartnerConnection;
     private $current_user;
 
     public function __construct($current_user) {
         $this->current_user = $current_user;
 
         $this->mySforceConnection = new SforceEnterpriseClient();
-        $this->mySforceConnection->createConnection(ABSPATH . "/sforce/soapclient/enterprise.wsdl.xml");
+        $this->mySforcePartnerConnection = new SforcePartnerClient();
+
+        $this->mySforcePartnerConnection->createConnection(Helper::asset('/sforce/soapclient/partner.wsdl.xml'));
+
+        $this->mySforceConnection->createConnection(Helper::asset('/sforce/soapclient/enterprise.wsdl.xml'));
+        $this->mySforcePartnerConnection->login(USERNAME, PASSWORD.SECURITY_TOKEN);
         if (isset($_SESSION['enterpriseSessionId'])) {
             $location = $_SESSION['enterpriseLocation'];
             $sessionId = $_SESSION['enterpriseSessionId'];
@@ -30,9 +41,11 @@ class SalesforceController
     }
 
     public function fetchRecords($thisCustomer) {
+        try {
+            $query = "SELECT Id, Name FROM Account WHERE Id in (SELECT AccountId FROM Contact WHERE Email='$thisCustomer->email') LIMIT 1";
+        } catch (Exception $e) {
 
-        $query = "SELECT Id, Name FROM Account WHERE Id in (SELECT AccountId FROM Contact WHERE Email='$thisCustomer->email') LIMIT 1";
-
+        }
 
         $response = $this->mySforceConnection->query($query);
         $sfAccId = null;
@@ -63,8 +76,11 @@ class SalesforceController
 
         $oppQuery = "SELECT Owner.Name, Amount FROM Opportunity WHERE Id in (SELECT OpportunityId FROM OpportunityContactRole WHERE Contact.Email = '$thisCustomer->email') AND Id in (SELECT OpportunityId FROM OpportunityLineItem WHERE Product__r.Family LIKE 'OHS%') ORDER BY CloseDate DESC LIMIT 1";
 
+        try {
+            $oppResponse = $this->mySforceConnection->query($oppQuery);
+        } catch (Exception $e) {
 
-        $oppResponse = $this->mySforceConnection->query($oppQuery);
+        }
         $oppAmount = null;
         $oppOwnerName = null;
 
@@ -74,16 +90,22 @@ class SalesforceController
             // $_SESSION['oppAmount'] = $record->Amount;
             // $_SESSION['oppOwnerName'] = $record->Owner;
         }
+        if ($oppAmount && $oppOwnerName) {
             update_user_meta($this->current_user->ID, 'sfOppAmount', $oppAmount);
-            update_user_meta($this->current_user->ID, 'sfOppOwner',$oppOwnerName);
+            update_user_meta($this->current_user->ID, 'sfOppOwner', $oppOwnerName);
             update_user_meta($this->current_user->ID, 'sfRefreshDate', time());
+        }
             return array('oppAmount'=>$oppAmount, 'oppOwner' => $oppOwnerName);
     }
 
     public function createRecords($thisCustomer) {
         $chkQuery = "SELECT Id, Name FROM Account WHERE Name='$thisCustomer->company' LIMIT 1";
 
-        $chkResponse = $this->mySforceConnection->query($chkQuery);
+        try {
+            $chkResponse = $this->mySforceConnection->query($chkQuery);
+        } catch (Exception $e) {
+
+        }
         $chkAccId = null;
         $chkAccName = null;
 
@@ -93,31 +115,70 @@ class SalesforceController
 
         }
         if ($chkAccId == null && $chkAccName == null) {
+            try {
 
-            $account = new stdclass();
-            $account->Name = $thisCustomer->company;
-            $accResponse = $this->mySforceConnection->create(array($account), 'Account');
+                // Start Partner API Call
+                $accFields = array (
+                    'Name' => $thisCustomer->company
+                );
 
-            $newSfAccId = null;
-            $sfAccName = null;
-            foreach ($accResponse as $accResult) {
-                //print_r($accResult);
-                //echo 'ID is: ' . $accResult->id;
-                $newSfAccId = $accResult->id;
-                $sfAccName = $thisCustomer->company;
+                $accsObject = new SObject();
+                $accsObject->fields = $accFields;
+                $accsObject->type = 'Account';
+
+                echo "**** Creating the following:\r\n";
+                $createAccResponse = $this->mySforcePartnerConnection->create(array($accsObject));
+
+
+                $AccIds = array();
+                $newSfAccId = null;
+                $sfAccName = null;
+                foreach ($createAccResponse as $createResult) {
+                    $newSfAccId = $createResult->id;
+                    $sfAccName = $thisCustomer->company;
+                }
+                //End Partner API calls
+
+
+            } catch (Exception $e) {
+                echo $e->faultstring;
+                echo $this->mySforceConnection->getLastRequest();
             }
             if ($newSfAccId && $sfAccName) {
                 update_user_meta($this->current_user->ID, 'sfAccId', $newSfAccId);
                 update_user_meta($this->current_user->ID, 'sfAccName',$sfAccName);
                 update_user_meta($this->current_user->ID, 'sfRefreshDate', time());
-            }
-            $cRecords = new stdclass();
-            $cRecords->FirstName = $thisCustomer->firstName;
-            $cRecords->LastName = $thisCustomer->lastName;
-            $cRecords->Email = $thisCustomer->email;
-            $cRecords->AccountId = $newSfAccId;
 
-            return $this->mySforceConnection->create(array($cRecords), 'Contact');
+                try {
+
+                    // Start Partner API Call
+                    $cFields = array (
+                        'FirstName' => $thisCustomer->firstName,
+                        'LastName' => $thisCustomer->lastName,
+                        'Email' => $thisCustomer->email,
+                        'AccountId' => $newSfAccId
+
+                    );
+
+                    $cObject = new SObject();
+                    $cObject->fields = $cFields;
+                    $cObject->type = 'Contact';
+
+                    echo "**** Creating the following:\r\n";
+                    $createContactResponse = $this->mySforcePartnerConnection->create(array($cObject));
+
+                    //End Partner API calls
+
+
+                } catch (Exception $e) {
+                    echo $e->faultstring;
+                    echo $this->mySforceConnection->getLastRequest();
+                }
+
+                return array('sfAccId' => $newSfAccId, 'sfAccName' => $sfAccName);
+            }
+
+
 
 
         } else {

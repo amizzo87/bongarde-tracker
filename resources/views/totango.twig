@@ -3,20 +3,33 @@ var totango_options = {
     service_id: "{{ service_id }}",
     user: {
         id: "{{ user_id }}",                 // email address or other unique identifier of the user
-        firstName: "{{ user_firstname }}",
-        lastName: "{{ user_lastname }}",
+        firstName: "{{ user_firstName }}",
+        lastName: "{{ user_lastName }}",
+{% if userProps %}
 {% for key, value in userProps %}
 {{ key }}: "{{ value }}",
 {% endfor %}
+{% endif %}
 },
 account: {
     id: "{{ acc_id }}",                            // unique identifier of the account the user is part of
     name: "{{ acc_name }}",             // name of the account
     status: "{{ acc_status }}",                         // OPTIONAL: status of the account "Free", "Paying", ..
-    "Create Date": "{{ acc_createdAt }}",
+    "Start Date": "{{ acc_createdAt }}",
+    "Contract Value": "{{ oppAmount }}",
+    "Account Type": "account",
+    {% if renewalDate %}
+    "Contract Renewal Date": "{{ renewalDate }}" ,
+    {% endif %}
+    {% if trialDate %}
+    "Trial Expiration Date": "{{ trialDate }}",
+    {% endif %}
+
+    {% if accProps %}
     {% for key, value in accProps %}
     {{ key }}: "{{ value }}",
     {% endfor %}
+    {% endif %}
 },
 // Add product: if you would like to register usage events on
 // the specific product
@@ -25,7 +38,8 @@ account: {
         account_id: "{{ acc_id }} : {{ product }}",// Optional, if not set we will use $account_id__$product_id
         module: "{{ module }}",
         // Revision: "5.3", // attribute on the product-account
-        "Account Type": "product"
+        "Account Type": "product",
+        planId: "{{ planId }}"
     }
 };
 
